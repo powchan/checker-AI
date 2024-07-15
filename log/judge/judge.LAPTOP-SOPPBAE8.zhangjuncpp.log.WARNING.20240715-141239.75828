@@ -1,0 +1,8 @@
+Log file created at: 2024/07/15 14:12:39
+Running on machine: LAPTOP-SOPPBAE8
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+W0715 14:12:39.167698 75828 game.cpp:423] clear failed
+W0715 14:12:39.673388 75828 game.cpp:423] clear failed
+W0715 14:12:40.177662 75828 game.cpp:423] clear failed
+W0715 14:12:40.679534 75828 game.cpp:423] clear failed
+W0715 14:12:41.184024 75828 game.cpp:423] clear failed
