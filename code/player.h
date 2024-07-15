@@ -5,15 +5,20 @@
  * @date 2021-07-01
  */
 
+#include <iostream>
+
 #include <string.h>
 #include "../include/playerbase.h"
 #include <stdio.h>
 #include <vector>
 #include <limits.h>
+#include <memory>
 
-#define MAX_DEPTH 9
+#define MAX_DEPTH 64
 
 using namespace std;
+
+vector<vector<char>> init_mat;
 
 bool isValid(struct Player *player, int posx, int posy);		 // 获取posx,posy处是否是合法落子点
 bool isOpponentValid(struct Player *player, int posx, int posy); // 获取对对方来说posx,posy处是否是合法落子点
@@ -40,7 +45,7 @@ int getOppoVaildPoints(struct Player *player, vector<Point> &valid_points);
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
-int doStep(struct Player *&player, int stepX, int stepY, bool myself);
+int doStep(struct Player *player, int stepX, int stepY, bool myself);
 
 /**
  * 进行限制深度的深度优先搜索
@@ -53,6 +58,15 @@ int dfs(struct Player *player, int depth, int depth_limit, Point &coor);
 void init(struct Player *player)
 {
 	// This function will be executed at the begin of each game, only once.
+	for (int i = 0; i < player->row_cnt; i++)
+	{
+		vector<char> temp;
+		for (int j = 0; j < player->col_cnt; j++)
+		{
+			temp.push_back(player->mat[i][j]);
+		}
+		init_mat.push_back(temp);
+	}
 }
 
 struct Point place(struct Player *player)
@@ -185,6 +199,19 @@ int getOppoVaildPoints(struct Player *player, vector<Point> &valid_points)
 	return valid_points.size();
 }
 
+int getScoreOfPoint(int x, int y)
+{
+	char c = init_mat[x][y];
+	if (c == 'o' || c == 'O')
+	{
+		return 0;
+	}
+	else
+	{
+		return c - '0';
+	}
+}
+
 bool inMat(int x, int y, int row_cnt, int col_cnt)
 {
 	return (x >= 0 && x < row_cnt && y >= 0 && y < col_cnt);
@@ -197,11 +224,13 @@ int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool
 	int x = startX + dirX;
 	int y = startY + dirY;
 	int cnt = 0;
+	int cnt_score = 0;
 	bool valid = false;
 
 	while (inMat(x, y, player->row_cnt, player->col_cnt) && player->mat[x][y] == opponentPiece)
 	{
 		cnt++;
+		cnt_score += getScoreOfPoint(x, y);
 		x += dirX;
 		y += dirY;
 	}
@@ -221,7 +250,7 @@ int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool
 			x += dirX;
 			y += dirY;
 		}
-		return cnt;
+		return cnt_score;
 	}
 
 	return 0;
@@ -234,7 +263,7 @@ int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
-int doStep(struct Player *&player, int stepX, int stepY, bool myself)
+int doStep(struct Player *player, int stepX, int stepY, bool myself)
 {
 	char myPiece = myself ? 'O' : 'o';
 	player->mat[stepX][stepY] = myPiece;
@@ -247,16 +276,18 @@ int doStep(struct Player *&player, int stepX, int stepY, bool myself)
 		score += Flip(player, stepX, stepY, directions[i][0], directions[i][1], myself);
 	}
 
+	int point_score = getScoreOfPoint(stepX, stepY);
 	if (myself)
 	{
-		player->your_score += score + 1;
+		player->your_score += score + point_score;
+		player->opponent_score -= score;
 	}
 	else
 	{
-		player->opponent_score += score + 1;
+		player->opponent_score += score + point_score;
 		player->your_score -= score;
 	}
-	return score + 1;
+	return score + point_score;
 }
 
 /**
@@ -273,56 +304,55 @@ int dfs(struct Player *player, int depth, int depth_limit, Point &coor)
 		return player->your_score - player->opponent_score;
 	}
 
-	if (depth % 2 == 0)
+	vector<Point> try_places;
+	int step_num = (depth % 2 == 0) ? getVaildPoints(player, try_places) : getOppoVaildPoints(player, try_places);
+	if (step_num <= 0)
 	{
-		vector<Point> try_places;
-		int step_num = getVaildPoints(player, try_places);
-		if (step_num <= 0)
+		if (coor.X == -1)
 		{
 			return player->your_score - player->opponent_score;
 		}
+		else
+		{
+			coor = initPoint(-1, -1);
+			return dfs(player, depth + 1, depth_limit, coor);
+		}
+	}
+
+	if (depth % 2 == 0)
+	{
 		int max_score = INT_MIN;
 		Point max_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
-			auto temp_player = new struct Player;
-			memcpy(temp_player, player, sizeof(struct Player));
+			unique_ptr<Player> temp_player(new Player(*player));
 			Point temp_coor;
-			doStep(temp_player, try_places[i].X, try_places[i].Y, true);
-			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
+			doStep(temp_player.get(), try_places[i].X, try_places[i].Y, true);
+			int temp_score = dfs(temp_player.get(), depth + 1, depth_limit, temp_coor);
 			if (temp_score > max_score)
 			{
 				max_score = temp_score;
-				max_coor = temp_coor;
+				max_coor = try_places[i];
 			}
-			delete temp_player;
 		}
 		coor = max_coor;
 		return max_score;
 	}
-	else // 对方行走，可以考虑修改为随机行走
+	else
 	{
-		vector<Point> try_places;
-		int step_num = getOppoVaildPoints(player, try_places);
-		if (step_num <= 0)
-		{
-			return player->your_score - player->opponent_score;
-		}
 		int min_score = INT_MAX;
 		Point min_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
-			auto temp_player = new struct Player;
-			memcpy(temp_player, player, sizeof(struct Player));
+			unique_ptr<Player> temp_player(new Player(*player));
 			Point temp_coor;
-			doStep(temp_player, try_places[i].X, try_places[i].Y, false);
-			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
+			doStep(temp_player.get(), try_places[i].X, try_places[i].Y, false);
+			int temp_score = dfs(temp_player.get(), depth + 1, depth_limit, temp_coor);
 			if (temp_score < min_score)
 			{
 				min_score = temp_score;
-				min_coor = temp_coor;
+				min_coor = try_places[i];
 			}
-			delete temp_player;
 		}
 		coor = min_coor;
 		return min_score;
