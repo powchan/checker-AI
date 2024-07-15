@@ -106,7 +106,7 @@ int getVaildPoints(struct Player *player, vector<Point> &valid_points)
 	{
 		for (int j = 0; j < player->col_cnt; j++)
 		{
-			if (is_valid(player, i, j))
+			if (isValid(player, i, j))
 			{
 				valid_points.push_back(initPoint(i, j));
 			}
@@ -139,7 +139,7 @@ int dfs(struct Player *player, int depth, int& depth_limit, Point &coor)
 {
 	if (depth == depth_limit)
 	{
-		return;
+		return player->your_score - player->opponent_score;
 	}
 
 	vector<Point> try_places;
@@ -147,7 +147,7 @@ int dfs(struct Player *player, int depth, int& depth_limit, Point &coor)
 
 	if (depth % 2 == 0)
 	{
-		int max_score = INT_MAX;
+		int max_score = INT_MIN;
 		Point max_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
@@ -161,6 +161,7 @@ int dfs(struct Player *player, int depth, int& depth_limit, Point &coor)
 				max_score = temp_score;
 				max_coor = temp_coor;
 			}
+			delete temp_player;
 		}
 		coor = max_coor;
 		return max_score;
@@ -174,13 +175,14 @@ int dfs(struct Player *player, int depth, int& depth_limit, Point &coor)
 			auto temp_player = new struct Player;
 			memcpy(temp_player, player, sizeof(struct Player));
 			Point temp_coor;
-			doStep(temp_player, try_places[i].X, try_places[i].Y, true);
+			doStep(temp_player, try_places[i].X, try_places[i].Y, false);
 			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
 			if (temp_score < min_score)
 			{
 				min_score = temp_score;
 				min_coor = temp_coor;
 			}
+			delete temp_player;
 		}
 		coor = min_coor;
 		return min_score;
