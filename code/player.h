@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <vector>
 
+#define MAX_DEPTH 9
+
 using namespace std;
 
 bool isValid(struct Player *player, int posx, int posy); // 获取posx,posy处是否是合法落子点
