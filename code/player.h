@@ -116,16 +116,68 @@ int getVaildPoints(struct Player *player, vector<Point> &valid_points)
 	return valid_points.size();
 }
 
+bool inMat(int x, int y, int row_cnt, int col_cnt) {
+    return (x >= 0 && x < row_cnt && y >= 0 && y < col_cnt);
+}
+
+int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool myself) {
+    char myPiece = myself ? 'O' : 'o';
+    char opponentPiece = myself ? 'o' : 'O';
+    int x = startX + dirX;
+    int y = startY + dirY;
+    int cnt = 0;
+    bool valid = false;
+
+    while (inMat(x, y, player->row_cnt, player->col_cnt) && player->mat[x][y] == opponentPiece) {
+        cnt++;
+        x += dirX;
+        y += dirY;
+    }
+
+    if (inMat(x, y, player->row_cnt, player->col_cnt) && player->mat[x][y] == myPiece) {
+        valid = true;
+    }
+
+    if (valid && cnt > 0) {
+        x = startX + dirX;
+        y = startY + dirY;
+        for (int i = 0; i < cnt; i++) {
+            player->mat[x][y] = myPiece;
+            x += dirX;
+            y += dirY;
+        }
+        return cnt;
+    }
+
+    return 0;
+}
+
 /**
  * 下一步棋，计算下棋的结果
  * @param[in] stepX 落子点的x坐标
  * @param[in] stepY 落子点的y坐标
- * @param[in] myself true为自己落子，否则为对方落子
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
 int doStep(struct Player *&player, int stepX, int stepY, bool myself)
 {
+	char myPiece = myself ? 'O' : 'o';
+    player->mat[stepX][stepY] = myPiece;
+
+    int directions[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+
+    int score = 0;
+    for (int i = 0; i < 8; i++) {
+        score += Flip(player, stepX, stepY, directions[i][0], directions[i][1], myself);
+    }
+
+    if (myself) {
+        player->your_score += score + 1;
+    } else {
+        player->opponent_score += score + 1;
+        player->your_score -= score;
+    }
+	return score + 1;
 }
 
 /**
