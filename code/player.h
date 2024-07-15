@@ -14,7 +14,7 @@
 #include <limits.h>
 #include <memory>
 
-#define MAX_DEPTH 10
+#define MAX_DEPTH 20
 
 using namespace std;
 
@@ -46,7 +46,7 @@ int getOppoValidPoints(struct Player *player, vector<Point> &valid_points);
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
-int doStep(struct Player *&player, int stepX, int stepY, bool myself);
+int doStep(struct Player *player, int stepX, int stepY, bool myself);
 
 /**
  * 进行限制深度的深度优先搜索
@@ -120,14 +120,14 @@ int calculateStablePieces(Player *player, char playerChar)
 int calculateEdgePieces(Player *player, char playerChar)
 {
 	int edge_pieces = 0;
-	for (int i = 0; i < player->col_cnt; i++)
+	for (int i = 0; i < player->col_cnt -1; i++)
 	{
 		if (player->mat[0][i] == playerChar)
 			edge_pieces += getScoreOfPoint(0, i);
 		if (player->mat[player->row_cnt - 1][i] == playerChar)
 			edge_pieces += getScoreOfPoint(player->row_cnt - 1, i);
 	}
-	for (int i = 0; i < player->row_cnt; i++)
+	for (int i = 0; i < player->row_cnt - 1; i++)
 	{
 		if (player->mat[i][0] == playerChar)
 			edge_pieces += getScoreOfPoint(i, 0);
@@ -175,7 +175,7 @@ int evaluate(Player *player)
 	const int mut = 5;
 	score += stable_pieces * mut * 2;
 	score += edge_pieces * mut;
-	score += corner_pieces * mut * 3;
+	score += corner_pieces * mut * 4;
 	score += your_potential_moves * 2;
 	score -= opponent_potential_moves * 2;
 
@@ -368,7 +368,7 @@ int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
-int doStep(struct Player *&player, int stepX, int stepY, bool myself)
+int doStep(struct Player *player, int stepX, int stepY, bool myself)
 {
 	char myPiece = myself ? 'O' : 'o';
 	player->mat[stepX][stepY] = myPiece;
@@ -406,19 +406,6 @@ int dfs(struct Player *player, int depth, int depth_limit, Point &coor)
 {
 	if (depth == depth_limit)
 	{
-		//dbg 
-		cout<<"start"<<depth<<endl;
-		for (int i = 0; i < player->row_cnt; i++)
-		{
-
-			for (int j = 0; j < player->col_cnt; j++)
-			{
-				cout << player->mat[i][j];
-			}
-			cout << endl;
-		}
-		cout<<"end"<<endl;
-		//dbg end
 		return evaluate(player);
 	}
 
@@ -443,17 +430,15 @@ int dfs(struct Player *player, int depth, int depth_limit, Point &coor)
 		Point max_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
-			auto temp_player = new Player;
-			memcpy(temp_player, player, sizeof(Player));
+			auto temp_player = *player;
 			Point temp_coor;
-			doStep(temp_player, try_places[i].X, try_places[i].Y, true);
-			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
+			doStep(&temp_player, try_places[i].X, try_places[i].Y, true);
+			int temp_score = dfs(&temp_player, depth + 1, depth_limit, temp_coor);
 			if (temp_score > max_score)
 			{
 				max_score = temp_score;
 				max_coor = try_places[i];
 			}
-			delete temp_player;
 		}
 		coor = max_coor;
 		return max_score;
@@ -464,17 +449,15 @@ int dfs(struct Player *player, int depth, int depth_limit, Point &coor)
 		Point min_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
-			auto temp_player = new Player;
-			memcpy(temp_player, player, sizeof(Player));
+			auto temp_player = *player;
 			Point temp_coor;
-			doStep(temp_player, try_places[i].X, try_places[i].Y, false);
-			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
+			doStep(&temp_player, try_places[i].X, try_places[i].Y, false);
+			int temp_score = dfs(&temp_player, depth + 1, depth_limit, temp_coor);
 			if (temp_score < min_score)
 			{
 				min_score = temp_score;
 				min_coor = try_places[i];
 			}
-			delete temp_player;
 		}
 		coor = min_coor;
 		return min_score;
