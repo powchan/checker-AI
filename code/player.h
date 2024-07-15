@@ -9,6 +9,7 @@
 #include "../include/playerbase.h"
 #include <stdio.h>
 #include <vector>
+#include <limits.h>
 
 #define MAX_DEPTH 9
 
@@ -27,10 +28,11 @@ int getVaildPoints(struct Player *player, vector<Point> &valid_points);
  * 下一步棋，计算下棋的结果
  * @param[in] stepX 落子点的x坐标
  * @param[in] stepY 落子点的y坐标
+ * @param[in] myself true为自己落子，否则为对方落子
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
-int doStep(struct Player *&player, int stepX, int stepY);
+int doStep(struct Player *&player, int stepX, int stepY, bool myself);
 
 /**
  * 进行限制深度的深度优先搜索
@@ -38,7 +40,7 @@ int doStep(struct Player *&player, int stepX, int stepY);
  * @param[in] depth_limit 深度限制
  * @return 当前最优落子点
  */
-Point dfs(struct Player *player, int depth, int depth_limit);
+int dfs(struct Player *player, int depth, int& depth_limit, Point &coor);
 
 void init(struct Player *player)
 {
@@ -47,8 +49,10 @@ void init(struct Player *player)
 
 struct Point place(struct Player *player)
 {
-
-	return initPoint(-1, -1); // give up
+	Point p;
+	dfs(player, 0, MAX_DEPTH, p);
+	return p;
+	// return initPoint(-1, -1); // give up
 }
 
 bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是否是合法落子点
@@ -98,16 +102,29 @@ bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是
  */
 int getVaildPoints(struct Player *player, vector<Point> &valid_points)
 {
+	for (int i = 0; i < player->row_cnt; i++)
+	{
+		for (int j = 0; j < player->col_cnt; j++)
+		{
+			if (is_valid(player, i, j))
+			{
+				valid_points.push_back(initPoint(i, j));
+			}
+		}
+	}
+
+	return valid_points.size();
 }
 
 /**
  * 下一步棋，计算下棋的结果
  * @param[in] stepX 落子点的x坐标
  * @param[in] stepY 落子点的y坐标
+ * @param[in] myself true为自己落子，否则为对方落子
  * @param[out] player 玩家状态，包括地图、得分
  * @return 此步增加的得分
  */
-int doStep(struct Player *&player, int stepX, int stepY)
+int doStep(struct Player *&player, int stepX, int stepY, bool myself)
 {
 }
 
@@ -115,8 +132,57 @@ int doStep(struct Player *&player, int stepX, int stepY)
  * 进行限制深度的深度优先搜索
  * @param[in] depth 当前深度，初始为0
  * @param[in] depth_limit 深度限制
- * @return 当前最优落子点
+ * @param[out] coor 当前最优落子点
+ * @return 决策树最大得分
  */
-Point dfs(struct Player *player, int depth, int depth_limit)
+int dfs(struct Player *player, int depth, int& depth_limit, Point &coor)
 {
+	if (depth == depth_limit)
+	{
+		return;
+	}
+
+	vector<Point> try_places;
+	int step_num = getVaildPoints(player, try_places);
+
+	if (depth % 2 == 0)
+	{
+		int max_score = INT_MAX;
+		Point max_coor = initPoint(-1, -1);
+		for (int i = 0; i < step_num; i++)
+		{
+			auto temp_player = new struct Player;
+			memcpy(temp_player, player, sizeof(struct Player));
+			Point temp_coor;
+			doStep(temp_player, try_places[i].X, try_places[i].Y, true);
+			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
+			if (temp_score > max_score)
+			{
+				max_score = temp_score;
+				max_coor = temp_coor;
+			}
+		}
+		coor = max_coor;
+		return max_score;
+	}
+	else
+	{
+		int min_score = INT_MAX;
+		Point min_coor = initPoint(-1, -1);
+		for (int i = 0; i < step_num; i++)
+		{
+			auto temp_player = new struct Player;
+			memcpy(temp_player, player, sizeof(struct Player));
+			Point temp_coor;
+			doStep(temp_player, try_places[i].X, try_places[i].Y, true);
+			int temp_score = dfs(temp_player, depth + 1, depth_limit, temp_coor);
+			if (temp_score < min_score)
+			{
+				min_score = temp_score;
+				min_coor = temp_coor;
+			}
+		}
+		coor = min_coor;
+		return min_score;
+	}
 }
