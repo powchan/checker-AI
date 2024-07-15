@@ -166,7 +166,7 @@ int dfs(struct Player *player, int depth, int& depth_limit, Point &coor)
 		coor = max_coor;
 		return max_score;
 	}
-	else
+	else //对方行走，可以考虑修改为随机行走
 	{
 		int min_score = INT_MAX;
 		Point min_coor = initPoint(-1, -1);
