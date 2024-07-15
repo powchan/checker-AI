@@ -20,6 +20,7 @@ using namespace std;
 
 vector<vector<char>> init_mat;
 
+int getScoreOfPoint(int x, int y);
 bool isValid(struct Player *player, int posx, int posy);		 // 获取posx,posy处是否是合法落子点
 bool isOpponentValid(struct Player *player, int posx, int posy); // 获取对对方来说posx,posy处是否是合法落子点
 
@@ -28,14 +29,14 @@ bool isOpponentValid(struct Player *player, int posx, int posy); // 获取对对
  * @param[out] valid_points 可落子的点的位置的集合
  * @return 可落子的点的数目
  */
-int getVaildPoints(struct Player *player, vector<Point> &valid_points);
+int getValidPoints(struct Player *player, vector<Point> &valid_points);
 
 /**
  * 获取对方当前所有可落子的点
  * @param[out] valid_points 可落子的点的位置的集合
  * @return 可落子的点的数目
  */
-int getOppoVaildPoints(struct Player *player, vector<Point> &valid_points);
+int getOppoValidPoints(struct Player *player, vector<Point> &valid_points);
 
 /**
  * 下一步棋，计算下棋的结果
@@ -75,6 +76,110 @@ struct Point place(struct Player *player)
 	dfs(player, 0, MAX_DEPTH, p);
 	return p;
 	// return initPoint(-1, -1); // give up
+}
+
+bool isStable(Player *player, int x, int y, char playerChar)
+{
+	if (player->mat[x][y] != playerChar)
+		return false;
+
+	// 检查是否在边界上
+	if (x == 0 || x == player->row_cnt - 1 || y == 0 || y == player->col_cnt - 1)
+	{
+		return true;
+	}
+
+	// 检查是否被同色棋子包围
+	if ((x > 0 && player->mat[x - 1][y] == playerChar) &&
+		(x < player->row_cnt - 1 && player->mat[x + 1][y] == playerChar) &&
+		(y > 0 && player->mat[x][y - 1] == playerChar) &&
+		(y < player->col_cnt - 1 && player->mat[x][y + 1] == playerChar))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+int calculateStablePieces(Player *player, char playerChar)
+{
+	int stable_pieces = 0;
+	for (int i = 0; i < player->row_cnt; i++)
+	{
+		for (int j = 0; j < player->col_cnt; j++)
+		{
+			if (isStable(player, i, j,playerChar))
+			{
+				stable_pieces += getScoreOfPoint(i, j);
+			}
+		}
+	}
+	return stable_pieces;
+}
+
+int calculateEdgePieces(Player *player, char playerChar)
+{
+	int edge_pieces = 0;
+	for (int i = 0; i < player->col_cnt; i++)
+	{
+		if (player->mat[0][i] == playerChar)
+			edge_pieces += getScoreOfPoint(0, i);
+		if (player->mat[player->row_cnt - 1][i] == playerChar)
+			edge_pieces += getScoreOfPoint(player->row_cnt - 1, i);
+	}
+	for (int i = 0; i < player->row_cnt; i++)
+	{
+		if (player->mat[i][0] == playerChar)
+			edge_pieces += getScoreOfPoint(i, 0);
+		if (player->mat[i][player->col_cnt - 1] == playerChar)
+			edge_pieces += getScoreOfPoint(i, player->row_cnt - 1);
+	}
+	return edge_pieces;
+}
+
+int calculateCornerPieces(Player *player, char playerChar)
+{
+	int corner_pieces = 0;
+	if (player->mat[0][0] == playerChar)
+		corner_pieces += getScoreOfPoint(0, 0);
+	if (player->mat[0][player->col_cnt - 1] == playerChar)
+		corner_pieces += getScoreOfPoint(0, player->row_cnt - 1);
+	if (player->mat[player->row_cnt - 1][0] == playerChar)
+		corner_pieces += getScoreOfPoint(player->row_cnt - 1, 0);
+	if (player->mat[player->row_cnt - 1][player->col_cnt - 1] == playerChar)
+		corner_pieces += getScoreOfPoint(player->row_cnt - 1, player->row_cnt - 1);
+	return corner_pieces;
+}
+
+int calculatePotentialMoves(Player *player, bool is_your_turn)
+{
+	vector<Point> try_places;
+	int potential_moves = is_your_turn ? getValidPoints(player, try_places) : getOppoValidPoints(player, try_places);
+	return potential_moves;
+}
+
+int evaluate(Player *player)
+{
+	int score = (player->your_score - player->opponent_score);
+
+	// 计算稳定子、边缘子、角落子数量
+	int stable_pieces = calculateStablePieces(player, 'O') - calculateStablePieces(player, 'o');
+	int edge_pieces = calculateEdgePieces(player, 'O')- calculateEdgePieces(player, 'o');
+	int corner_pieces = calculateCornerPieces(player, 'O')- calculateCornerPieces(player, 'o');
+
+	// 计算我方和对方潜在行动数量
+	int your_potential_moves = calculatePotentialMoves(player, true);
+	int opponent_potential_moves = calculatePotentialMoves(player, false);
+
+	// 综合所有因素计算最终得分
+	const int mut = 5;
+	score += stable_pieces * mut * 2;
+	score += edge_pieces * mut;
+	score += corner_pieces * mut * 3;
+	score += your_potential_moves * 2;
+	score -= opponent_potential_moves * 2;
+
+	return score;
 }
 
 bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是否是合法落子点
@@ -162,7 +267,7 @@ bool isOpponentValid(struct Player *player, int posx, int posy) // 获取对对�
  * @param[out] valid_points 可落子的点的位置的集合
  * @return 可落子的点的数目
  */
-int getVaildPoints(struct Player *player, vector<Point> &valid_points)
+int getValidPoints(struct Player *player, vector<Point> &valid_points)
 {
 	for (int i = 0; i < player->row_cnt; i++)
 	{
@@ -183,7 +288,7 @@ int getVaildPoints(struct Player *player, vector<Point> &valid_points)
  * @param[out] valid_points 可落子的点的位置的集合
  * @return 可落子的点的数目
  */
-int getOppoVaildPoints(struct Player *player, vector<Point> &valid_points)
+int getOppoValidPoints(struct Player *player, vector<Point> &valid_points)
 {
 	for (int i = 0; i < player->row_cnt; i++)
 	{
@@ -301,16 +406,16 @@ int dfs(struct Player *player, int depth, int depth_limit, Point &coor)
 {
 	if (depth == depth_limit)
 	{
-		return player->your_score - player->opponent_score;
+		return evaluate(player);
 	}
 
 	vector<Point> try_places;
-	int step_num = (depth % 2 == 0) ? getVaildPoints(player, try_places) : getOppoVaildPoints(player, try_places);
+	int step_num = (depth % 2 == 0) ? getValidPoints(player, try_places) : getOppoValidPoints(player, try_places);
 	if (step_num <= 0)
 	{
 		if (coor.X == -1)
 		{
-			return player->your_score - player->opponent_score;
+			return evaluate(player);
 		}
 		else
 		{
