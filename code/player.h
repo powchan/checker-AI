@@ -19,6 +19,7 @@
 using namespace std;
 
 vector<vector<char>> init_mat;
+int general_score = 0;
 
 int getScoreOfPoint(int x, int y);
 bool isValid(struct Player *player, int posx, int posy);		 // 获取posx,posy处是否是合法落子点
@@ -65,6 +66,14 @@ void init(struct Player *player)
 		for (int j = 0; j < player->col_cnt; j++)
 		{
 			temp.push_back(player->mat[i][j]);
+			if (player->mat[i][j] == 'o' || player->mat[i][j] == 'O')
+			{
+				general_score += 0;
+			}
+			else
+			{
+				general_score += (player->mat[i][j] - '0');
+			}
 		}
 		init_mat.push_back(temp);
 	}
@@ -80,106 +89,160 @@ struct Point place(struct Player *player)
 
 bool isStable(Player *player, int x, int y, char playerChar)
 {
-	if (player->mat[x][y] != playerChar)
-		return false;
+    if (player->mat[x][y] != playerChar)
+        return false;
 
-	// 检查是否在边界上
-	if (x == 0 || x == player->row_cnt - 1 || y == 0 || y == player->col_cnt - 1)
-	{
-		return true;
-	}
+    // 检查是否在边界上
+    if (x == 0 || x == player->row_cnt - 1 || y == 0 || y == player->col_cnt - 1)
+    {
+        return true;
+    }
 
-	// 检查是否被同色棋子包围
-	if ((x > 0 && player->mat[x - 1][y] == playerChar) &&
-		(x < player->row_cnt - 1 && player->mat[x + 1][y] == playerChar) &&
-		(y > 0 && player->mat[x][y - 1] == playerChar) &&
-		(y < player->col_cnt - 1 && player->mat[x][y + 1] == playerChar))
-	{
-		return true;
-	}
+    // 检查是否被同色棋子包围
+    if ((x > 0 && player->mat[x - 1][y] == playerChar) &&
+        (x < player->row_cnt - 1 && player->mat[x + 1][y] == playerChar) &&
+        (y > 0 && player->mat[x][y - 1] == playerChar) &&
+        (y < player->col_cnt - 1 && player->mat[x][y + 1] == playerChar))
+    {
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 int calculateStablePieces(Player *player, char playerChar)
 {
-	int stable_pieces = 0;
-	for (int i = 0; i < player->row_cnt; i++)
-	{
-		for (int j = 0; j < player->col_cnt; j++)
-		{
-			if (isStable(player, i, j, playerChar))
-			{
-				stable_pieces += getScoreOfPoint(i, j);
-			}
-		}
-	}
-	return stable_pieces;
+    int stable_pieces = 0;
+    for (int i = 0; i < player->row_cnt; i++)
+    {
+        for (int j = 0; j < player->col_cnt; j++)
+        {
+            if (isStable(player, i, j, playerChar))
+            {
+                stable_pieces += getScoreOfPoint(i, j);
+            }
+        }
+    }
+    return stable_pieces;
 }
 
 int calculateEdgePieces(Player *player, char playerChar)
 {
-	int edge_pieces = 0;
-	for (int i = 0; i < player->col_cnt -1; i++)
-	{
-		if (player->mat[0][i] == playerChar)
-			edge_pieces += getScoreOfPoint(0, i);
-		if (player->mat[player->row_cnt - 1][i] == playerChar)
-			edge_pieces += getScoreOfPoint(player->row_cnt - 1, i);
-	}
-	for (int i = 0; i < player->row_cnt - 1; i++)
-	{
-		if (player->mat[i][0] == playerChar)
-			edge_pieces += getScoreOfPoint(i, 0);
-		if (player->mat[i][player->col_cnt - 1] == playerChar)
-			edge_pieces += getScoreOfPoint(i, player->row_cnt - 1);
-	}
-	return edge_pieces;
+    int edge_pieces = 0;
+    for (int i = 0; i < player->col_cnt; i++)
+    {
+        if (player->mat[0][i] == playerChar)
+            edge_pieces += getScoreOfPoint(0, i);
+        if (player->mat[player->row_cnt - 1][i] == playerChar)
+            edge_pieces += getScoreOfPoint(player->row_cnt - 1, i);
+    }
+    for (int i = 0; i < player->row_cnt; i++)
+    {
+        if (player->mat[i][0] == playerChar)
+            edge_pieces += getScoreOfPoint(i, 0);
+        if (player->mat[i][player->col_cnt - 1] == playerChar)
+            edge_pieces += getScoreOfPoint(i, player->col_cnt - 1);
+    }
+    return edge_pieces;
 }
 
 int calculateCornerPieces(Player *player, char playerChar)
 {
-	int corner_pieces = 0;
-	if (player->mat[0][0] == playerChar)
-		corner_pieces += getScoreOfPoint(0, 0);
-	if (player->mat[0][player->col_cnt - 1] == playerChar)
-		corner_pieces += getScoreOfPoint(0, player->row_cnt - 1);
-	if (player->mat[player->row_cnt - 1][0] == playerChar)
-		corner_pieces += getScoreOfPoint(player->row_cnt - 1, 0);
-	if (player->mat[player->row_cnt - 1][player->col_cnt - 1] == playerChar)
-		corner_pieces += getScoreOfPoint(player->row_cnt - 1, player->row_cnt - 1);
-	return corner_pieces;
+    int corner_pieces = 0;
+    if (player->mat[0][0] == playerChar)
+        corner_pieces += getScoreOfPoint(0, 0);
+    if (player->mat[0][player->col_cnt - 1] == playerChar)
+        corner_pieces += getScoreOfPoint(0, player->col_cnt - 1);
+    if (player->mat[player->row_cnt - 1][0] == playerChar)
+        corner_pieces += getScoreOfPoint(player->row_cnt - 1, 0);
+    if (player->mat[player->row_cnt - 1][player->col_cnt - 1] == playerChar)
+        corner_pieces += getScoreOfPoint(player->row_cnt - 1, player->col_cnt - 1);
+    return corner_pieces;
 }
 
 int calculatePotentialMoves(Player *player, bool is_your_turn)
 {
-	vector<Point> try_places;
-	int potential_moves = is_your_turn ? getValidPoints(player, try_places) : getOppoValidPoints(player, try_places);
-	return potential_moves;
+    vector<Point> try_places;
+    int potential_moves = is_your_turn ? getValidPoints(player, try_places) : getOppoValidPoints(player, try_places);
+    return potential_moves;
+}
+
+int calculateFrontierDiscs(Player *player, char playerChar)
+{
+    int frontier_discs = 0;
+    for (int i = 0; i < player->row_cnt; i++)
+    {
+        for (int j = 0; j < player->col_cnt; j++)
+        {
+            if (player->mat[i][j] == playerChar)
+            {
+                if ((i > 0 && player->mat[i - 1][j] == ' ') ||
+                    (i < player->row_cnt - 1 && player->mat[i + 1][j] == ' ') ||
+                    (j > 0 && player->mat[i][j - 1] == ' ') ||
+                    (j < player->col_cnt - 1 && player->mat[i][j + 1] == ' '))
+                {
+                    frontier_discs++;
+                }
+            }
+        }
+    }
+    return frontier_discs;
 }
 
 int evaluate(Player *player)
 {
-	int score = (player->your_score - player->opponent_score);
+    int score = (player->your_score - player->opponent_score);
 
-	// 计算稳定子、边缘子、角落子数量
-	int stable_pieces = calculateStablePieces(player, 'O') - calculateStablePieces(player, 'o');
-	int edge_pieces = calculateEdgePieces(player, 'O') - calculateEdgePieces(player, 'o');
-	int corner_pieces = calculateCornerPieces(player, 'O') - calculateCornerPieces(player, 'o');
+    // 计算稳定子、边缘子、角落子数量
+    int stable_pieces = calculateStablePieces(player, 'O') - calculateStablePieces(player, 'o');
+    int edge_pieces = calculateEdgePieces(player, 'O') - calculateEdgePieces(player, 'o');
+    int corner_pieces = calculateCornerPieces(player, 'O') - calculateCornerPieces(player, 'o');
 
-	// 计算我方和对方潜在行动数量
-	int your_potential_moves = calculatePotentialMoves(player, true);
-	int opponent_potential_moves = calculatePotentialMoves(player, false);
+    // 计算我方和对方潜在行动数量
+    int your_potential_moves = calculatePotentialMoves(player, true);
+    int opponent_potential_moves = calculatePotentialMoves(player, false);
 
-	// 综合所有因素计算最终得分
-	const int mut = 5;
-	score += stable_pieces * mut * 2;
-	score += edge_pieces * mut;
-	score += corner_pieces * mut * 4;
-	score += your_potential_moves * 2;
-	score -= opponent_potential_moves * 2;
+    // 计算前沿子数量
+    int your_frontier_discs = calculateFrontierDiscs(player, 'O');
+    int opponent_frontier_discs = calculateFrontierDiscs(player, 'o');
 
-	return score;
+    // 判断游戏阶段
+    int total_pieces = player->your_score + player->opponent_score;
+    int total_positions = general_score;
+    double game_phase = (double)total_pieces / total_positions;
+
+    // 根据游戏阶段调整权重
+    const int stable_weight = 5;
+    const int edge_weight = 2;
+    const int corner_weight = 20;
+    const int potential_moves_weight = 3;
+    const int frontier_weight = -1;
+
+    if (game_phase < 0.3) { // 开局
+        score += stable_pieces * stable_weight;
+        score += edge_pieces * edge_weight;
+        score += corner_pieces * corner_weight;
+        score += your_potential_moves * potential_moves_weight;
+        score -= opponent_potential_moves * potential_moves_weight;
+    } else if (game_phase < 0.7) { // 中局
+        score += stable_pieces * stable_weight * 2;
+        score += edge_pieces * edge_weight;
+        score += corner_pieces * corner_weight * 2;
+        score += your_potential_moves * potential_moves_weight * 2;
+        score -= opponent_potential_moves * potential_moves_weight * 2;
+        score += your_frontier_discs * frontier_weight;
+        score -= opponent_frontier_discs * frontier_weight;
+    } else { // 终局
+        score += stable_pieces * stable_weight * 3;
+        score += edge_pieces * edge_weight * 3;
+        score += corner_pieces * corner_weight * 3;
+        score += your_potential_moves * potential_moves_weight;
+        score -= opponent_potential_moves * potential_moves_weight;
+        score += your_frontier_discs * frontier_weight * 2;
+        score -= opponent_frontier_discs * frontier_weight * 2;
+    }
+
+    return score;
 }
 
 bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是否是合法落子点
