@@ -1,7 +1,11 @@
-#include <iostream>
+/**
+ * @file player.h
+ * @author yangboyang@jisuanke.com
+ * @copyright jisuanke.com
+ * @date 2021-07-01
+ */
 #include <string.h>
 #include "../include/playerbase.h"
-#include <stdio.h>
 #include <vector>
 #include <limits.h>
 #include <memory>
