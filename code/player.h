@@ -11,15 +11,30 @@
 #include <cstring>
 #include "../include/playerbase.h"
 
-#define MAX_DEPTH 2
+#define MAX_DEPTH 2 // 最大遍历深度
 
 using namespace std;
 
-vector<vector<char>> init_mat;
-int general_score = 0;
+vector<vector<char>> init_mat; // 地图初始分数
+int general_score = 0;         // 地图总分数
 
+/**
+ * 获取当前所在点的分数
+ * @param[in] x 点的横坐标
+ * @param[in] y 点的纵坐标
+ * @return 点的分数
+ */
 int getScoreOfPoint(int x, int y);
+
+/**
+ * 获取当前点的估值分数
+ * @param[in] x 点的横坐标
+ * @param[in] y 点的纵坐标
+ * @return 点的分数
+ */
 int getScoreForEvaluate(int x, int y);
+
+
 bool inMat(int x, int y, int row_cnt, int col_cnt);
 int Flip(Player *player, int startX, int startY, int dirX, int dirY, bool myself);
 int doStep(Player *player, int stepX, int stepY, bool myself);
