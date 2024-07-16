@@ -6,8 +6,7 @@
 #include <limits.h>
 #include <memory>
 
-#define MAX_DEPTH 10
-#define maxsize 12
+#define MAX_DEPTH 5
 
 using namespace std;
 
@@ -15,6 +14,7 @@ vector<vector<char>> init_mat;
 int general_score = 0;
 
 int getScoreOfPoint(int x, int y);
+int getScoreForEv(int x, int y);
 bool isValid(struct Player *player, int posx, int posy);
 bool isOpponentValid(struct Player *player, int posx, int posy);
 
@@ -52,8 +52,7 @@ void init(struct Player *player)
 
 struct Point place(struct Player *player)
 {
-	Point p;
-	struct Point point = initPoint(-1, -1);
+	Point point = initPoint(-1, -1);
 	vector<Point> valid_points;
 	int valid_num = getValidPoints(player, valid_points);
 	if (valid_num > 0)
@@ -70,7 +69,6 @@ struct Point place(struct Player *player)
 				max_score = score;
 				point = valid_points[i];
 			}
-
 		}
 	}
 	return point;
@@ -192,6 +190,19 @@ int getScoreOfPoint(int x, int y)
 	if (c == 'o' || c == 'O')
 	{
 		return 0;
+	}
+	else
+	{
+		return c - '0';
+	}
+}
+
+int getScoreForEv(int x, int y)
+{
+	char c = init_mat[x][y];
+	if (c == 'o' || c == 'O')
+	{
+		return 1;
 	}
 	else
 	{
@@ -374,11 +385,11 @@ int evaluate(struct Player *player)
 		{
 			if (player->mat[i][j] == 'O')
 			{
-				board[i][j] = getScoreOfPoint(i, j);
+				board[i][j] = getScoreForEv(i, j);
 			}
 			else if (player->mat[i][j] == 'o')
 			{
-				board[i][j] = -getScoreOfPoint(i, j);
+				board[i][j] = -getScoreForEv(i, j);
 			}
 			else
 			{
@@ -407,11 +418,9 @@ int alphaBeta(struct Player *player, int depth, int alpha, int beta, bool maximi
 
 	if (maximizingPlayer)
 	{
-		int max_score = INT_MIN;
 		for (int i = 0; i < step_num; i++)
 		{
 			auto temp_player = *player;
-			Point temp_coor;
 			doStep(&temp_player, valid_points[i].X, valid_points[i].Y, true);
 			int temp_score = alphaBeta(&temp_player, depth + 1, alpha, beta, false);
 			alpha = max(alpha, temp_score);
@@ -424,11 +433,9 @@ int alphaBeta(struct Player *player, int depth, int alpha, int beta, bool maximi
 	}
 	else
 	{
-		int min_score = INT_MAX;
 		for (int i = 0; i < step_num; i++)
 		{
 			auto temp_player = *player;
-			Point temp_coor;
 			doStep(&temp_player, valid_points[i].X, valid_points[i].Y, false);
 			int temp_score = alphaBeta(&temp_player, depth + 1, alpha, beta, true);
 			beta = min(beta, temp_score);
