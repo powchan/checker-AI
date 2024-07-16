@@ -76,9 +76,34 @@ void freePlayer(Player *player);
  * @param[in] nowPlayer 当前是否轮到玩家
  */
 bool isValid(Player *player, int posX, int posY, bool nowPlayer);
+/**
+ * 获取稳定子和角落点的得分
+ * @param[in] board 棋盘分数状况
+ * @param[in] w_weight 权重
+ * @return 总分数
+ */
 int getStable(vector<vector<int>> &board, int w_weight);
+/**
+ * 判断是否是前沿子
+ * @param[in] board 棋盘分数状况
+ * @param[in] i 棋子横坐标
+ * @param[in] j 棋子纵坐标
+ * @return true 棋子是前沿子 flase 棋子不是前沿子
+ * 
+ */
 bool isFrontier(vector<vector<int>> &board, int i, int j);
+/**
+ * 获取前沿子的总分数
+ * @param[in] board 棋盘的评估得分
+ * @param[in] w_weight 权重
+ * @return 前沿子得分
+ */
 int getFrontier(vector<vector<int>> &board, int w_weight);
+/**
+ * 计算评估分数
+ * @param[in] 玩家信息
+ * @return 稳定子，角落点和前沿子的总评估分数
+ */
 int evaluate(Player *player);
 
 /**
