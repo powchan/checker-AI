@@ -65,6 +65,7 @@ int Flip(Player *player, int startX, int startY, int dirX, int dirY, bool myself
  * @return 返回这一步下棋方得到的分数（包含落子位置的得分）
  */
 int doStep(Player *player, int stepX, int stepY, bool myself);
+
 Player *copyPlayer(Player *player);
 void freePlayer(Player *player);
 
