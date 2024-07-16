@@ -23,9 +23,9 @@ int getOppoValidPoints(struct Player *player, vector<Point> &valid_points);
 int doStep(struct Player *player, int stepX, int stepY, bool myself);
 int alphaBeta(struct Player *player, int depth, int alpha, int beta, bool maximizingPlayer);
 int evaluate(struct Player *player);
-int get_stable(int board[maxsize][maxsize], int n);
-int get_frontier(int board[maxsize][maxsize], int n);
-bool is_frontier(int board[maxsize][maxsize], int i, int j);
+int get_stable(vector<vector<int>> board);
+int get_frontier(vector<vector<int>> board);
+bool is_frontier(vector<vector<int>> board, int i, int j);
 bool inMat(int x, int y, int row_cnt, int col_cnt);
 int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool myself);
 
@@ -270,8 +270,9 @@ int doStep(struct Player *player, int stepX, int stepY, bool myself)
 	return score + point_score;
 }
 
-int get_stable(int board[maxsize][maxsize], int n)
+int get_stable(vector<vector<int>> board)
 {
+	int n = board[0].size();
 	int corner = 0;
 	int steady = 0;
 
@@ -331,7 +332,7 @@ int get_stable(int board[maxsize][maxsize], int n)
 		return 8 * corner + 12 * steady;
 }
 
-bool is_frontier(int board[maxsize][maxsize], int i, int j)
+bool is_frontier(vector<vector<int>> board, int i, int j)
 {
 	for (int dy = -1; dy <= 1; dy++)
 	{
@@ -346,8 +347,9 @@ bool is_frontier(int board[maxsize][maxsize], int i, int j)
 	return false;
 }
 
-int get_frontier(int board[maxsize][maxsize], int n)
+int get_frontier(vector<vector<int>> board)
 {
+	int n = board[0].size();
 	int frontier = 0;
 
 	for (int i = 1; i <= n - 2; i++)
@@ -365,7 +367,7 @@ int get_frontier(int board[maxsize][maxsize], int n)
 
 int evaluate(struct Player *player)
 {
-	int board[maxsize][maxsize];
+	vector<vector<int>> board(player->row_cnt, vector<int>(player->col_cnt, 0));
 	for (int i = 0; i < player->row_cnt; i++)
 	{
 		for (int j = 0; j < player->col_cnt; j++)
@@ -384,9 +386,7 @@ int evaluate(struct Player *player)
 			}
 		}
 	}
-
-	int n = player->col_cnt;
-	int player_score = get_stable(board, n) + 4 * get_frontier(board, n);
+	int player_score = get_stable(board) + 4 * get_frontier(board);
 
 	return player_score;
 }
