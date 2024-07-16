@@ -34,9 +34,36 @@ int getScoreOfPoint(int x, int y);
  */
 int getScoreForEvaluate(int x, int y);
 
-
+/**
+ * 判断当前点是否在棋盘内
+ * @param[in] x 点的横坐标
+ * @param[in] y 点的纵坐标
+ * @param[in] row_cnt 地图的最大行数（下标从0开始）
+ * @param[in] col_cnt 棋盘的最大列数（下标从0开始）
+ * @return true在棋盘内 false不在棋盘内
+ */
 bool inMat(int x, int y, int row_cnt, int col_cnt);
+
+/**
+ * 进行翻棋子操作，同时计算这一步下棋方的得分（不包含落子位置的得分）
+ * @param[in] player 玩家信息，包括棋盘现态，双方各自的分数
+ * @param[in] startX 落子的位置的横坐标
+ * @param[in] startY 落子的位置的纵坐标
+ * @param[in] dirX   -1表示向落子位置上方探索，0表示行不变，1表示向落子位置下方探索
+ * @param[in] dirX   -1表示向落子位置左方探索，0表示行不变，1表示向落子位置右方探索
+ * @param[in] myself true为我方下棋，false为对方下棋
+ * @return 返回这一步得到的分数（不包含落子位置的得分）
+ */
 int Flip(Player *player, int startX, int startY, int dirX, int dirY, bool myself);
+
+/**
+ * 进行落子操作并探索是否有符合的棋子可以被翻转，修改双方分数
+ * @param[in] player 玩家信息，包括棋盘现态，双方各自的分数
+ * @param[in] stepX 落子的位置的横坐标
+ * @param[in] stepY 落子的位置的纵坐标
+ * @param[in] myself true为我方下棋，false为对方下棋
+ * @return 返回这一步下棋方得到的分数（包含落子位置的得分）
+ */
 int doStep(Player *player, int stepX, int stepY, bool myself);
 Player *copyPlayer(Player *player);
 void freePlayer(Player *player);
@@ -82,38 +109,41 @@ bool inMat(int x, int y, int row_cnt, int col_cnt)
 
 int Flip(Player *player, int startX, int startY, int dirX, int dirY, bool myself)
 {
-    char myPiece = myself ? 'O' : 'o';
+    char myPiece = myself ? 'O' : 'o';          //判断这一步下的是哪种棋子
     char opponentPiece = myself ? 'o' : 'O';
-    int x = startX + dirX;
+    int x = startX + dirX;                      //向dir决定的方向进行一次探索
     int y = startY + dirY;
-    int cnt = 0;
-    int cnt_score = 0;
+    int cnt = 0;                                //记录有多少个棋子被翻转
+    int cnt_score = 0;                          //记录翻转这些棋子的得分
     bool valid = false;
-
+    
+    //如果探索到的在棋盘内部且是对手的棋子，记录得分并探索下一个棋子
     while (inMat(x, y, player->row_cnt, player->col_cnt) && player->mat[x][y] == opponentPiece)
     {
-        cnt++;
+        cnt++;                                  //被翻转的棋子加一
         cnt_score += getScoreOfPoint(x, y);
         x += dirX;
         y += dirY;
     }
 
+    //确保落子点仍然是我方棋子
     if (inMat(x, y, player->row_cnt, player->col_cnt) && player->mat[x][y] == myPiece)
     {
         valid = true;
     }
 
+    //开始对记录在案的棋子进行翻转
     if (valid && cnt > 0)
     {
-        x = startX + dirX;
+        x = startX + dirX;                       //探索该方向上的下一个棋子
         y = startY + dirY;
-        for (int i = 0; i < cnt; i++)
+        for (int i = 0; i < cnt; i++)            //翻转操作
         {
             player->mat[x][y] = myPiece;
             x += dirX;
             y += dirY;
         }
-        return cnt_score;
+        return cnt_score;                        //返回除了落子点以外的得分
     }
 
     return 0;
@@ -121,23 +151,28 @@ int Flip(Player *player, int startX, int startY, int dirX, int dirY, bool myself
 
 int doStep(Player *player, int stepX, int stepY, bool myself)
 {
-    char myPiece = myself ? 'O' : 'o';
-    player->mat[stepX][stepY] = myPiece;
+    char myPiece = myself ? 'O' : 'o';           //判断这一步下的是哪种棋子
+    player->mat[stepX][stepY] = myPiece;         //在落子位置放上我方棋子
 
     int directions[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
 
     int score = 0;
+
+    //向落子的八个方向探索，并进行翻转
     for (int i = 0; i < 8; i++)
     {
         score += Flip(player, stepX, stepY, directions[i][0], directions[i][1], myself);
     }
 
-    int point_score = getScoreOfPoint(stepX, stepY);
-    if (myself)
+    int point_score = getScoreOfPoint(stepX, stepY);//获取落子点的分数
+
+    //我方落子引起的得分变化
+    if (myself) 
     {
         player->your_score += score + point_score;
         player->opponent_score -= score;
     }
+    //对方落子引起的得分变化
     else
     {
         player->opponent_score += score + point_score;
