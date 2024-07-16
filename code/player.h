@@ -1,12 +1,4 @@
-/**
- * @file player.h
- * @author yangboyang@jisuanke.com
- * @copyright jisuanke.com
- * @date 2021-07-01
- */
-
 #include <iostream>
-
 #include <string.h>
 #include "../include/playerbase.h"
 #include <stdio.h>
@@ -14,7 +6,8 @@
 #include <limits.h>
 #include <memory>
 
-#define MAX_DEPTH 20
+#define MAX_DEPTH 10
+#define maxsize 12
 
 using namespace std;
 
@@ -22,44 +15,22 @@ vector<vector<char>> init_mat;
 int general_score = 0;
 
 int getScoreOfPoint(int x, int y);
-bool isValid(struct Player *player, int posx, int posy);		 // 获取posx,posy处是否是合法落子点
-bool isOpponentValid(struct Player *player, int posx, int posy); // 获取对对方来说posx,posy处是否是合法落子点
+bool isValid(struct Player *player, int posx, int posy);
+bool isOpponentValid(struct Player *player, int posx, int posy);
 
-/**
- * 获取当前所有可落子的点
- * @param[out] valid_points 可落子的点的位置的集合
- * @return 可落子的点的数目
- */
 int getValidPoints(struct Player *player, vector<Point> &valid_points);
-
-/**
- * 获取对方当前所有可落子的点
- * @param[out] valid_points 可落子的点的位置的集合
- * @return 可落子的点的数目
- */
 int getOppoValidPoints(struct Player *player, vector<Point> &valid_points);
-
-/**
- * 下一步棋，计算下棋的结果
- * @param[in] stepX 落子点的x坐标
- * @param[in] stepY 落子点的y坐标
- * @param[in] myself true为自己落子，否则为对方落子
- * @param[out] player 玩家状态，包括地图、得分
- * @return 此步增加的得分
- */
 int doStep(struct Player *player, int stepX, int stepY, bool myself);
-
-/**
- * 进行限制深度的深度优先搜索
- * @param[in] depth 当前深度，初始为0
- * @param[in] depth_limit 深度限制
- * @return 当前最优落子点
- */
-int dfs(struct Player *player, int depth, int depth_limit, Point &coor);
+int alphaBeta(struct Player *player, int depth, int alpha, int beta, bool maximizingPlayer);
+int evaluate(struct Player *player);
+int get_stable(int board[maxsize][maxsize], int n);
+int get_frontier(int board[maxsize][maxsize], int n);
+bool is_frontier(int board[maxsize][maxsize], int i, int j);
+bool inMat(int x, int y, int row_cnt, int col_cnt);
+int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool myself);
 
 void init(struct Player *player)
 {
-	// This function will be executed at the begin of each game, only once.
 	for (int i = 0; i < player->row_cnt; i++)
 	{
 		vector<char> temp;
@@ -82,170 +53,30 @@ void init(struct Player *player)
 struct Point place(struct Player *player)
 {
 	Point p;
-	dfs(player, 0, MAX_DEPTH, p);
-	return p;
-	// return initPoint(-1, -1); // give up
+	struct Point point = initPoint(-1, -1);
+	vector<Point> valid_points;
+	int valid_num = getValidPoints(player, valid_points);
+	if (valid_num > 0)
+	{
+		int max_score = INT_MIN;
+		int score = 0;
+		for (int i = 0; i < valid_num; i++)
+		{
+			struct Player temp_player = *player;
+			doStep(&temp_player, valid_points[i].X, valid_points[i].Y, 1);
+			score = alphaBeta(&temp_player, 0, INT_MIN, INT_MAX, 0);
+			if (score > max_score)
+			{
+				max_score = score;
+				point = valid_points[i];
+			}
+
+		}
+	}
+	return point;
 }
 
-bool isStable(Player *player, int x, int y, char playerChar)
-{
-    if (player->mat[x][y] != playerChar)
-        return false;
-
-    // 检查是否在边界上
-    if (x == 0 || x == player->row_cnt - 1 || y == 0 || y == player->col_cnt - 1)
-    {
-        return true;
-    }
-
-    // 检查是否被同色棋子包围
-    if ((x > 0 && player->mat[x - 1][y] == playerChar) &&
-        (x < player->row_cnt - 1 && player->mat[x + 1][y] == playerChar) &&
-        (y > 0 && player->mat[x][y - 1] == playerChar) &&
-        (y < player->col_cnt - 1 && player->mat[x][y + 1] == playerChar))
-    {
-        return true;
-    }
-
-    return false;
-}
-
-int calculateStablePieces(Player *player, char playerChar)
-{
-    int stable_pieces = 0;
-    for (int i = 0; i < player->row_cnt; i++)
-    {
-        for (int j = 0; j < player->col_cnt; j++)
-        {
-            if (isStable(player, i, j, playerChar))
-            {
-                stable_pieces += getScoreOfPoint(i, j);
-            }
-        }
-    }
-    return stable_pieces;
-}
-
-int calculateEdgePieces(Player *player, char playerChar)
-{
-    int edge_pieces = 0;
-    for (int i = 0; i < player->col_cnt; i++)
-    {
-        if (player->mat[0][i] == playerChar)
-            edge_pieces += getScoreOfPoint(0, i);
-        if (player->mat[player->row_cnt - 1][i] == playerChar)
-            edge_pieces += getScoreOfPoint(player->row_cnt - 1, i);
-    }
-    for (int i = 0; i < player->row_cnt; i++)
-    {
-        if (player->mat[i][0] == playerChar)
-            edge_pieces += getScoreOfPoint(i, 0);
-        if (player->mat[i][player->col_cnt - 1] == playerChar)
-            edge_pieces += getScoreOfPoint(i, player->col_cnt - 1);
-    }
-    return edge_pieces;
-}
-
-int calculateCornerPieces(Player *player, char playerChar)
-{
-    int corner_pieces = 0;
-    if (player->mat[0][0] == playerChar)
-        corner_pieces += getScoreOfPoint(0, 0);
-    if (player->mat[0][player->col_cnt - 1] == playerChar)
-        corner_pieces += getScoreOfPoint(0, player->col_cnt - 1);
-    if (player->mat[player->row_cnt - 1][0] == playerChar)
-        corner_pieces += getScoreOfPoint(player->row_cnt - 1, 0);
-    if (player->mat[player->row_cnt - 1][player->col_cnt - 1] == playerChar)
-        corner_pieces += getScoreOfPoint(player->row_cnt - 1, player->col_cnt - 1);
-    return corner_pieces;
-}
-
-int calculatePotentialMoves(Player *player, bool is_your_turn)
-{
-    vector<Point> try_places;
-    int potential_moves = is_your_turn ? getValidPoints(player, try_places) : getOppoValidPoints(player, try_places);
-    return potential_moves;
-}
-
-int calculateFrontierDiscs(Player *player, char playerChar)
-{
-    int frontier_discs = 0;
-    for (int i = 0; i < player->row_cnt; i++)
-    {
-        for (int j = 0; j < player->col_cnt; j++)
-        {
-            if (player->mat[i][j] == playerChar)
-            {
-                if ((i > 0 && player->mat[i - 1][j] == ' ') ||
-                    (i < player->row_cnt - 1 && player->mat[i + 1][j] == ' ') ||
-                    (j > 0 && player->mat[i][j - 1] == ' ') ||
-                    (j < player->col_cnt - 1 && player->mat[i][j + 1] == ' '))
-                {
-                    frontier_discs++;
-                }
-            }
-        }
-    }
-    return frontier_discs;
-}
-
-int evaluate(Player *player)
-{
-    int score = (player->your_score - player->opponent_score);
-
-    // 计算稳定子、边缘子、角落子数量
-    int stable_pieces = calculateStablePieces(player, 'O') - calculateStablePieces(player, 'o');
-    int edge_pieces = calculateEdgePieces(player, 'O') - calculateEdgePieces(player, 'o');
-    int corner_pieces = calculateCornerPieces(player, 'O') - calculateCornerPieces(player, 'o');
-
-    // 计算我方和对方潜在行动数量
-    int your_potential_moves = calculatePotentialMoves(player, true);
-    int opponent_potential_moves = calculatePotentialMoves(player, false);
-
-    // 计算前沿子数量
-    int your_frontier_discs = calculateFrontierDiscs(player, 'O');
-    int opponent_frontier_discs = calculateFrontierDiscs(player, 'o');
-
-    // 判断游戏阶段
-    int total_pieces = player->your_score + player->opponent_score;
-    int total_positions = general_score;
-    double game_phase = (double)total_pieces / total_positions;
-
-    // 根据游戏阶段调整权重
-    const int stable_weight = 5;
-    const int edge_weight = 2;
-    const int corner_weight = 20;
-    const int potential_moves_weight = 3;
-    const int frontier_weight = -1;
-
-    if (game_phase < 0.3) { // 开局
-        score += stable_pieces * stable_weight;
-        score += edge_pieces * edge_weight;
-        score += corner_pieces * corner_weight;
-        score += your_potential_moves * potential_moves_weight;
-        score -= opponent_potential_moves * potential_moves_weight;
-    } else if (game_phase < 0.7) { // 中局
-        score += stable_pieces * stable_weight * 2;
-        score += edge_pieces * edge_weight;
-        score += corner_pieces * corner_weight * 2;
-        score += your_potential_moves * potential_moves_weight * 2;
-        score -= opponent_potential_moves * potential_moves_weight * 2;
-        score += your_frontier_discs * frontier_weight;
-        score -= opponent_frontier_discs * frontier_weight;
-    } else { // 终局
-        score += stable_pieces * stable_weight * 3;
-        score += edge_pieces * edge_weight * 3;
-        score += corner_pieces * corner_weight * 3;
-        score += your_potential_moves * potential_moves_weight;
-        score -= opponent_potential_moves * potential_moves_weight;
-        score += your_frontier_discs * frontier_weight * 2;
-        score -= opponent_frontier_discs * frontier_weight * 2;
-    }
-
-    return score;
-}
-
-bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是否是合法落子点
+bool isValid(struct Player *player, int posx, int posy)
 {
 	if (posx < 0 || posx >= player->row_cnt || posy < 0 || posy >= player->col_cnt)
 	{
@@ -255,7 +86,7 @@ bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是
 	{
 		return false;
 	}
-	int step[8][2] = {0, 1, 0, -1, 1, 0, -1, 0, 1, 1, -1, -1, 1, -1, -1, 1};
+	int step[8][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
 	for (int dir = 0; dir < 8; dir++)
 	{
 		int x = posx + step[dir][0];
@@ -285,7 +116,7 @@ bool isValid(struct Player *player, int posx, int posy) // 获取posx,posy处是
 	return false;
 }
 
-bool isOpponentValid(struct Player *player, int posx, int posy) // 获取对对方来说posx,posy处是否是合法落子点
+bool isOpponentValid(struct Player *player, int posx, int posy)
 {
 	if (posx < 0 || posx >= player->row_cnt || posy < 0 || posy >= player->col_cnt)
 	{
@@ -295,7 +126,7 @@ bool isOpponentValid(struct Player *player, int posx, int posy) // 获取对对�
 	{
 		return false;
 	}
-	int step[8][2] = {0, 1, 0, -1, 1, 0, -1, 0, 1, 1, -1, -1, 1, -1, -1, 1};
+	int step[8][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
 	for (int dir = 0; dir < 8; dir++)
 	{
 		int x = posx + step[dir][0];
@@ -325,11 +156,6 @@ bool isOpponentValid(struct Player *player, int posx, int posy) // 获取对对�
 	return false;
 }
 
-/**
- * 获取当前所有可落子的点
- * @param[out] valid_points 可落子的点的位置的集合
- * @return 可落子的点的数目
- */
 int getValidPoints(struct Player *player, vector<Point> &valid_points)
 {
 	for (int i = 0; i < player->row_cnt; i++)
@@ -342,15 +168,9 @@ int getValidPoints(struct Player *player, vector<Point> &valid_points)
 			}
 		}
 	}
-
 	return valid_points.size();
 }
 
-/**
- * 获取对方当前所有可落子的点
- * @param[out] valid_points 可落子的点的位置的集合
- * @return 可落子的点的数目
- */
 int getOppoValidPoints(struct Player *player, vector<Point> &valid_points)
 {
 	for (int i = 0; i < player->row_cnt; i++)
@@ -363,7 +183,6 @@ int getOppoValidPoints(struct Player *player, vector<Point> &valid_points)
 			}
 		}
 	}
-
 	return valid_points.size();
 }
 
@@ -424,13 +243,6 @@ int Flip(struct Player *player, int startX, int startY, int dirX, int dirY, bool
 	return 0;
 }
 
-/**
- * 下一步棋，计算下棋的结果
- * @param[in] stepX 落子点的x坐标
- * @param[in] stepY 落子点的y坐标
- * @param[out] player 玩家状态，包括地图、得分
- * @return 此步增加的得分
- */
 int doStep(struct Player *player, int stepX, int stepY, bool myself)
 {
 	char myPiece = myself ? 'O' : 'o';
@@ -458,71 +270,173 @@ int doStep(struct Player *player, int stepX, int stepY, bool myself)
 	return score + point_score;
 }
 
-/**
- * 进行限制深度的深度优先搜索
- * @param[in] depth 当前深度，初始为0
- * @param[in] depth_limit 深度限制
- * @param[out] coor 当前最优落子点
- * @return 决策树最大得分
- */
-int dfs(struct Player *player, int depth, int depth_limit, Point &coor)
+int get_stable(int board[maxsize][maxsize], int n)
 {
-	if (depth == depth_limit)
+	int corner = 0;
+	int steady = 0;
+
+	int row = n - 1;
+	int corner_map[4][4] =
+		{
+			{0, 0, 1, 1},
+			{0, row, 1, -1},
+			{row, 0, -1, 1},
+			{row, row, -1, -1}};
+
+	for (int c = 0; c < 4; c++)
+	{
+		int corner_i = corner_map[c][0];
+		int corner_j = corner_map[c][1];
+		int dy = corner_map[c][2];
+		int dx = corner_map[c][3];
+
+		if (board[corner_i][corner_j] == 0)
+		{
+			corner += board[corner_i][corner_j + dx] * -3;
+			corner += board[corner_i + dy][corner_j]  * -3;
+			corner += board[corner_i + dy][corner_j + dx]  * -6;
+			corner += board[corner_i][corner_j + 2 * dx]  * 4;
+			corner += board[corner_i + 2 * dy][corner_j]  * 4;
+			corner += board[corner_i + dy][corner_j + 2 * dx]  * 2;
+			corner += board[corner_i + 2 * dy][corner_j + dx] * 2;
+		}
+		else
+		{
+			int i = corner_i;
+			int j = corner_j;
+			int current_color = board[corner_i][corner_j];
+
+			corner += board[corner_i][corner_j]  * 15;
+
+			while (i >= 0 && i <= row && board[i][corner_j] == current_color)
+			{
+				steady +=  current_color;
+				i += dy;
+			}
+			while (j >= 0 && j <= row && board[corner_i][j] == current_color)
+			{
+				steady +=  current_color;
+				j += dx;
+			}
+		}
+	}
+
+	if (n == 8)
+		return 6 * corner + 12 * steady;
+	else if (n == 10)
+		return 10 * corner + 12 * steady;
+	else if (n == 12)
+		return 8 * corner + 12 * steady;
+	else
+		return 8 * corner + 12 * steady;
+}
+
+bool is_frontier(int board[maxsize][maxsize], int i, int j)
+{
+	for (int dy = -1; dy <= 1; dy++)
+	{
+		for (int dx = -1; dx <= 1; dx++)
+		{
+			if (!(dy == 0 && dx == 0) && board[i + dy][j + dx] != 0)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+int get_frontier(int board[maxsize][maxsize], int n)
+{
+	int frontier = 0;
+
+	for (int i = 1; i <= n - 2; i++)
+	{
+		for (int j = 1; j <= n - 2; j++)
+		{
+			if (board[i][j] != 0 && is_frontier(board, i, j))
+			{
+				frontier -= board[i][j];
+			}
+		}
+	}
+	return frontier;
+}
+
+int evaluate(struct Player *player)
+{
+	int board[maxsize][maxsize];
+	for (int i = 0; i < player->row_cnt; i++)
+	{
+		for (int j = 0; j < player->col_cnt; j++)
+		{
+			if (player->mat[i][j] == 'O')
+			{
+				board[i][j] = getScoreOfPoint(i, j);
+			}
+			else if (player->mat[i][j] == 'o')
+			{
+				board[i][j] = -getScoreOfPoint(i, j);
+			}
+			else
+			{
+				board[i][j] = 0;
+			}
+		}
+	}
+
+	int n = player->col_cnt;
+	int player_score = get_stable(board, n) + 4 * get_frontier(board, n);
+
+	return player_score;
+}
+
+int alphaBeta(struct Player *player, int depth, int alpha, int beta, bool maximizingPlayer)
+{
+	if (depth == MAX_DEPTH)
 	{
 		return evaluate(player);
 	}
 
-	vector<Point> try_places;
-	int step_num = (depth % 2 == 0) ? getValidPoints(player, try_places) : getOppoValidPoints(player, try_places);
+	vector<Point> valid_points;
+	int step_num = maximizingPlayer ? getValidPoints(player, valid_points) : getOppoValidPoints(player, valid_points);
 	if (step_num <= 0)
 	{
-		if (coor.X == -1)
-		{
-			return evaluate(player);
-		}
-		else
-		{
-			coor = initPoint(-1, -1);
-			return dfs(player, depth + 1, depth_limit, coor);
-		}
+		return evaluate(player);
 	}
 
-	if (depth % 2 == 0)
+	if (maximizingPlayer)
 	{
 		int max_score = INT_MIN;
-		Point max_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
 			auto temp_player = *player;
 			Point temp_coor;
-			doStep(&temp_player, try_places[i].X, try_places[i].Y, true);
-			int temp_score = dfs(&temp_player, depth + 1, depth_limit, temp_coor);
-			if (temp_score > max_score)
+			doStep(&temp_player, valid_points[i].X, valid_points[i].Y, true);
+			int temp_score = alphaBeta(&temp_player, depth + 1, alpha, beta, false);
+			alpha = max(alpha, temp_score);
+			if (beta <= alpha)
 			{
-				max_score = temp_score;
-				max_coor = try_places[i];
+				return beta;
 			}
 		}
-		coor = max_coor;
-		return max_score;
+		return alpha;
 	}
 	else
 	{
 		int min_score = INT_MAX;
-		Point min_coor = initPoint(-1, -1);
 		for (int i = 0; i < step_num; i++)
 		{
 			auto temp_player = *player;
 			Point temp_coor;
-			doStep(&temp_player, try_places[i].X, try_places[i].Y, false);
-			int temp_score = dfs(&temp_player, depth + 1, depth_limit, temp_coor);
-			if (temp_score < min_score)
+			doStep(&temp_player, valid_points[i].X, valid_points[i].Y, false);
+			int temp_score = alphaBeta(&temp_player, depth + 1, alpha, beta, true);
+			beta = min(beta, temp_score);
+			if (beta <= alpha)
 			{
-				min_score = temp_score;
-				min_coor = try_places[i];
+				return alpha;
 			}
 		}
-		coor = min_coor;
-		return min_score;
+		return beta;
 	}
 }
