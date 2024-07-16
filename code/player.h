@@ -50,7 +50,7 @@ bool inMat(int x, int y, int row_cnt, int col_cnt);
  * @param[in] startX 落子的位置的横坐标
  * @param[in] startY 落子的位置的纵坐标
  * @param[in] dirX   -1表示向落子位置上方探索，0表示行不变，1表示向落子位置下方探索
- * @param[in] dirX   -1表示向落子位置左方探索，0表示行不变，1表示向落子位置右方探索
+ * @param[in] dirY   -1表示向落子位置左方探索，0表示行不变，1表示向落子位置右方探索
  * @param[in] myself true为我方下棋，false为对方下棋
  * @return 返回这一步得到的分数（不包含落子位置的得分）
  */
