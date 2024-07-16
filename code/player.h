@@ -266,11 +266,11 @@ int getStable(vector<vector<int>> &board, int w_weight)
         }
     }
     if (n == 8)
-        return 6 * corner_weight + 12 * steady_weight;
+        return 14 * corner_weight + 12 * steady_weight;
     else if (n == 10)
-        return 10 * corner_weight + 12 * steady_weight;
+        return 14 * corner_weight + 12 * steady_weight;
     else if (n == 12)
-        return 8 * corner_weight + 12 * steady_weight;
+        return 12 * corner_weight + 12 * steady_weight;
     else
         return 8 * corner_weight + 12 * steady_weight;
 }
@@ -327,7 +327,6 @@ int evaluate(Player *player)
     }
 
     int player_score = getStable(board, 1) + 4 * getFrontier(board, 1);
-
     return player_score;
 }
 
