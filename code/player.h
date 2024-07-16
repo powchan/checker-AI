@@ -11,11 +11,12 @@
 #include <cstring>
 #include "../include/playerbase.h"
 
+#define MAX_DEPTH 2
+
 using namespace std;
+
 vector<vector<char>> init_mat;
 int general_score = 0;
-constexpr int maxsize = 15;
-int prior[maxsize][maxsize];
 
 int getScoreOfPoint(int x, int y)
 {
@@ -136,19 +137,19 @@ void freePlayer(Player* player) {
     delete player;
 }
 
-bool isValid(Player* player, int posx, int posy, bool nowPlayer) {
-    if (posx < 0 || posx >= player->row_cnt || posy < 0 || posy >= player->col_cnt) {
+bool isValid(Player* player, int posX, int posY, bool nowPlayer) {
+    if (posX < 0 || posX >= player->row_cnt || posY < 0 || posY >= player->col_cnt) {
         return false;
     }
-    if (player->mat[posx][posy] == 'o' || player->mat[posx][posy] == 'O') {
+    if (player->mat[posX][posY] == 'o' || player->mat[posX][posY] == 'O') {
         return false;
     }
     vector<pair<int, int>> step = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
     for (size_t i = 0; i < step.size(); ++i) {
         int dx = step[i].first;
         int dy = step[i].second;
-        int x = posx + dx;
-        int y = posy + dy;
+        int x = posX + dx;
+        int y = posY + dy;
         if (x < 0 || x >= player->row_cnt || y < 0 || y >= player->col_cnt) {
             continue;
         }
@@ -249,7 +250,7 @@ int getFrontier(vector<vector<int>>& board, int w_weight) {
     return frontier_weight;
 }
 
-int evaluate(Player* player, int ok_cnt) {
+int evaluate(Player* player) {
     vector<vector<int>> board(player->row_cnt, vector<int>(player->col_cnt, 0));
     for (int i = 0; i < player->row_cnt; i++) {
         for (int j = 0; j < player->col_cnt; j++) {
@@ -276,11 +277,11 @@ int alphaBeta(Player* player, int depth, int alpha, int beta, bool nowPlayer) {
         }
     }
     if (depth == 0) {
-        return evaluate(player, valid_points.size());
+        return evaluate(player);
     }
 
     if (valid_points.empty()) {
-        return evaluate(player, 0);
+        return evaluate(player);
     }
 
     if (nowPlayer) {
@@ -349,7 +350,7 @@ Point place(Player* player) {
         for (size_t i = 0; i < valid_points.size(); ++i) {
             Player* next_player = copyPlayer(player);
             doStep(next_player, valid_points[i].X, valid_points[i].Y, 1);
-            score = alphaBeta(next_player, 2, INT_MIN, INT_MAX, false);
+            score = alphaBeta(next_player, MAX_DEPTH, INT_MIN, INT_MAX, false);
 
             if (score > max_score) {
                 max_score = score;
