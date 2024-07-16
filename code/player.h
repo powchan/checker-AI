@@ -1,6 +1,8 @@
 /**
- * @file player.h
- * @brief Black and White Game AI Player
+ * @file computer.h
+ * @author CrazyThursday@jisuanke.com
+ * @copyright jisuanke.com
+ * @date 2024/7/16
  */
 
 #include <iostream>
@@ -28,7 +30,7 @@ int getScoreOfPoint(int x, int y)
     }
 }
 
-int getScoreForEv(int x, int y)
+int getScoreForEvaluate(int x, int y)
 {
     char c = init_mat[x][y];
     if (c == 'o' || c == 'O')
@@ -134,7 +136,7 @@ void freePlayer(Player* player) {
     delete player;
 }
 
-bool isValid(Player* player, int posx, int posy, int maximizingPlayer) {
+bool isValid(Player* player, int posx, int posy, bool nowPlayer) {
     if (posx < 0 || posx >= player->row_cnt || posy < 0 || posy >= player->col_cnt) {
         return false;
     }
@@ -150,7 +152,7 @@ bool isValid(Player* player, int posx, int posy, int maximizingPlayer) {
         if (x < 0 || x >= player->row_cnt || y < 0 || y >= player->col_cnt) {
             continue;
         }
-        if ((maximizingPlayer == 1 && player->mat[x][y] != 'o') || (maximizingPlayer == 0 && player->mat[x][y] != 'O')) {
+        if ((nowPlayer && player->mat[x][y] != 'o') || (!nowPlayer && player->mat[x][y] != 'O')) {
             continue;
         }
         while (true) {
@@ -159,7 +161,7 @@ bool isValid(Player* player, int posx, int posy, int maximizingPlayer) {
             if (x < 0 || x >= player->row_cnt || y < 0 || y >= player->col_cnt || (player->mat[x][y] >= '1' && player->mat[x][y] <= '9')) {
                 break;
             }
-            if ((maximizingPlayer == 1 && player->mat[x][y] == 'O') || (maximizingPlayer == 0 && player->mat[x][y] == 'o')) {
+            if ((nowPlayer  && player->mat[x][y] == 'O') || (!nowPlayer && player->mat[x][y] == 'o')) {
                 return true;
             }
         }
@@ -167,10 +169,10 @@ bool isValid(Player* player, int posx, int posy, int maximizingPlayer) {
     return false;
 }
 
-int getStable(vector<vector<int>>& board, int current) {
+int getStable(vector<vector<int>>& board, int w_weight) {
     int n = board.size();
-    int corner = 0; 
-    int steady = 0;
+    int corner_weight = 0; 
+    int steady_weight = 0;
 
     int row = n - 1;
     vector<vector<int>> corner_map = {
@@ -181,45 +183,45 @@ int getStable(vector<vector<int>>& board, int current) {
     };
 
     for (auto& corner_data : corner_map) {
-        int corner_i = corner_data[0];
-        int corner_j = corner_data[1];
+        int corner_x = corner_data[0];
+        int corner_y = corner_data[1];
         int dy = corner_data[2];
         int dx = corner_data[3];
 
-        if (board[corner_i][corner_j] == 0) {
-            corner += board[corner_i][corner_j + dx] * current * -3;
-            corner += board[corner_i + dy][corner_j] * current * -3;
-            corner += board[corner_i + dy][corner_j + dx] * current * -6;
+        if (board[corner_x][corner_y] == 0) {
+            corner_weight += board[corner_x][corner_y + dx] * w_weight * -3;
+            corner_weight += board[corner_x + dy][corner_y] * w_weight * -3;
+            corner_weight += board[corner_x + dy][corner_y + dx] * w_weight * -6;
 
-            corner += board[corner_i][corner_j + 2 * dx] * current * 4;
-            corner += board[corner_i + 2 * dy][corner_j] * current * 4;
-            corner += board[corner_i + dy][corner_j + 2 * dx] * current * 2;
-            corner += board[corner_i + 2 * dy][corner_j + dx] * current * 2;
+            corner_weight += board[corner_x][corner_y + 2 * dx] * w_weight * 4;
+            corner_weight += board[corner_x + 2 * dy][corner_y] * w_weight * 4;
+            corner_weight += board[corner_x + dy][corner_y + 2 * dx] * w_weight * 2;
+            corner_weight += board[corner_x + 2 * dy][corner_y + dx] * w_weight * 2;
         } else {
-            int i = corner_i;
-            int j = corner_j;
-            int current_color = board[corner_i][corner_j];
+            int i = corner_x;
+            int j = corner_y;
+            int current_score = board[corner_x][corner_y];
 
-            corner += board[corner_i][corner_j] * current * 15;
+            corner_weight += board[corner_x][corner_y] * w_weight * 15;
 
-            while (i >= 0 && i <= row && board[i][corner_j] == current_color) {
-                steady += current * current_color;
+            while (i >= 0 && i <= row && board[i][corner_y] == current_score) {
+                steady_weight += w_weight * current_score;
                 i += dy;
             }
-            while (j >= 0 && j <= row && board[corner_i][j] == current_color) {
-                steady += current * current_color;
+            while (j >= 0 && j <= row && board[corner_x][j] == current_score) {
+                steady_weight += w_weight * current_score;
                 j += dx;
             }
         }
     }
     if (n == 8)
-        return 6 * corner + 12 * steady;
+        return 6 * corner_weight + 12 * steady_weight;
     else if (n == 10)
-        return 10 * corner + 12 * steady;
+        return 10 * corner_weight + 12 * steady_weight;
     else if (n == 12)
-        return 8 * corner + 12 * steady;
+        return 8 * corner_weight + 12 * steady_weight;
     else
-        return 8 * corner + 12 * steady;
+        return 8 * corner_weight + 12 * steady_weight;
 }
 
 bool isFrontier(vector<vector<int>>& board, int i, int j) {
@@ -233,18 +235,18 @@ bool isFrontier(vector<vector<int>>& board, int i, int j) {
     return false;
 }
 
-int getFrontier(vector<vector<int>>& board, int current) {
+int getFrontier(vector<vector<int>>& board, int w_weight) {
     int n = board[0].size();
-    int frontier = 0;
+    int frontier_weight = 0;
 
     for (int i = 1; i <= n - 2; i++) {
         for (int j = 1; j <= n - 2; j++) {
             if (board[i][j] != 0 && isFrontier(board, i, j)) {
-                frontier -= board[i][j] * current;
+                frontier_weight -= board[i][j] * w_weight;
             }
         }
     }
-    return frontier;
+    return frontier_weight;
 }
 
 int evaluate(Player* player, int ok_cnt) {
@@ -252,9 +254,9 @@ int evaluate(Player* player, int ok_cnt) {
     for (int i = 0; i < player->row_cnt; i++) {
         for (int j = 0; j < player->col_cnt; j++) {
             if (player->mat[i][j] == 'O') {
-                board[i][j] = getScoreForEv(i, j);
+                board[i][j] = getScoreForEvaluate(i, j);
             } else if (player->mat[i][j] == 'o') {
-                board[i][j] = -getScoreForEv(i, j);
+                board[i][j] = -getScoreForEvaluate(i, j);
             }
         }
     }
@@ -264,28 +266,28 @@ int evaluate(Player* player, int ok_cnt) {
     return player_score;
 }
 
-int alphaBeta(Player* player, int depth, int alpha, int beta, int maximizingPlayer) {
-    vector<Point> ok_points;
+int alphaBeta(Player* player, int depth, int alpha, int beta, bool nowPlayer) {
+    vector<Point> valid_points;
     for (int i = 0; i < player->row_cnt; i++) {
         for (int j = 0; j < player->col_cnt; j++) {
-            if (isValid(player, i, j, maximizingPlayer)) {
-                ok_points.push_back(initPoint(i, j));
+            if (isValid(player, i, j, nowPlayer)) {
+                valid_points.push_back(initPoint(i, j));
             }
         }
     }
     if (depth == 0) {
-        return evaluate(player, ok_points.size());
+        return evaluate(player, valid_points.size());
     }
 
-    if (ok_points.empty()) {
+    if (valid_points.empty()) {
         return evaluate(player, 0);
     }
 
-    if (maximizingPlayer) {
-        for (size_t i = 0; i < ok_points.size(); ++i) {
+    if (nowPlayer) {
+        for (size_t i = 0; i < valid_points.size(); ++i) {
             Player* next_player = copyPlayer(player);
-            doStep(next_player, ok_points[i].X, ok_points[i].Y, 1);
-            int score = alphaBeta(next_player, depth - 1, alpha, beta, 0);
+            doStep(next_player, valid_points[i].X, valid_points[i].Y, 1);
+            int score = alphaBeta(next_player, depth - 1, alpha, beta, false);
 
             alpha = max(alpha, score);
 
@@ -297,11 +299,11 @@ int alphaBeta(Player* player, int depth, int alpha, int beta, int maximizingPlay
         }
         return alpha;
     } else {
-        for (size_t i = 0; i < ok_points.size(); ++i) {
+        for (size_t i = 0; i < valid_points.size(); ++i) {
             Player* next_player = copyPlayer(player);
-            doStep(next_player, ok_points[i].X, ok_points[i].Y, 0);
+            doStep(next_player, valid_points[i].X, valid_points[i].Y, 0);
 
-            int score = alphaBeta(next_player, depth - 1, alpha, beta, 1);
+            int score = alphaBeta(next_player, depth - 1, alpha, beta, true);
 
             beta = min(beta, score);
 
@@ -331,27 +333,27 @@ void init(Player* player) {
 }
 
 Point place(Player* player) {
-    vector<Point> ok_points;
+    vector<Point> valid_points;
     for (int i = 0; i < player->row_cnt; i++) {
         for (int j = 0; j < player->col_cnt; j++) {
-            if (isValid(player, i, j, 1)) {
-                ok_points.push_back(initPoint(i, j));
+            if (isValid(player, i, j, true)) {
+                valid_points.push_back(initPoint(i, j));
             }
         }
     }
 
     Point point = initPoint(-1, -1);
-    if (!ok_points.empty()) {
+    if (!valid_points.empty()) {
         int max_score = INT_MIN;
         int score = 0;
-        for (size_t i = 0; i < ok_points.size(); ++i) {
+        for (size_t i = 0; i < valid_points.size(); ++i) {
             Player* next_player = copyPlayer(player);
-            doStep(next_player, ok_points[i].X, ok_points[i].Y, 1);
-            score = alphaBeta(next_player, 2, INT_MIN, INT_MAX, 0);
+            doStep(next_player, valid_points[i].X, valid_points[i].Y, 1);
+            score = alphaBeta(next_player, 2, INT_MIN, INT_MAX, false);
 
             if (score > max_score) {
                 max_score = score;
-                point = ok_points[i];
+                point = valid_points[i];
             }
 
             freePlayer(next_player);
