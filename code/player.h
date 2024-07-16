@@ -40,13 +40,40 @@ int Flip(Player *player, int startX, int startY, int dirX, int dirY, bool myself
 int doStep(Player *player, int stepX, int stepY, bool myself);
 Player *copyPlayer(Player *player);
 void freePlayer(Player *player);
+
+/**
+ * 判断落子点是否有效
+ * @param[in] player 当前棋局的状态信息
+ * @param[in] posX 落子点的横坐标
+ * @param[in] posY 落子点的纵坐标
+ * @param[in] nowPlayer 当前是否轮到玩家
+ */
 bool isValid(Player *player, int posX, int posY, bool nowPlayer);
 int getStable(vector<vector<int>> &board, int w_weight);
 bool isFrontier(vector<vector<int>> &board, int i, int j);
 int getFrontier(vector<vector<int>> &board, int w_weight);
 int evaluate(Player *player);
+
+/**
+ * 进行alpha-Beta剪枝操作
+ * @param[in] player 当前棋局的状态信息
+ * @param[in] depth 当前搜索深度
+ * @param[in] alpha alpha值，用于剪枝操作
+ * @param[in] beta beta值，用于剪枝操作
+ * @param[in] nowPlayer 当前是否轮到玩家
+ */
 int alphaBeta(Player *player, int depth, int alpha, int beta, bool nowPlayer);
+
+/**
+ * 初始化棋局状态信息并统计总分数
+ * @param[in] player 当前棋局的状态信息
+ */
 void init(Player *player);
+
+/**
+ * 获取最优落子点的坐标
+ * @param[in] player 当前棋局的状态信息
+ */
 Point place(Player *player);
 
 int getScoreOfPoint(int x, int y)
