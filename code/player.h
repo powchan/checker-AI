@@ -9,6 +9,7 @@
 #include <vector>
 #include <climits>
 #include <cstring>
+#include <random>
 #include "../include/playerbase.h"
 
 #define MAX_DEPTH 2 // 最大遍历深度
@@ -17,6 +18,7 @@ using namespace std;
 
 vector<vector<char>> init_mat; // 地图初始分数
 int general_score = 0;         // 地图总分数
+bool strategy;
 
 /**
  * 获取当前所在点的分数
@@ -357,10 +359,10 @@ int getStable(vector<vector<int>> &board, int w_weight)
         return 14 * corner_weight + 12 * steady_weight;
     else if (n == 10)
         return 14 * corner_weight + 12 * steady_weight;
-    else if (n == 12)
-        return 12 * corner_weight + 12 * steady_weight;
+    else if (n == 12 && strategy)
+        return 12 * corner_weight + 14 * steady_weight;
     else
-        return 8 * corner_weight + 12 * steady_weight;
+        return 14 * corner_weight + 12 * steady_weight;
 }
 
 bool isFrontier(vector<vector<int>> &board, int i, int j)
@@ -484,6 +486,10 @@ int alphaBeta(Player *player, int depth, int alpha, int beta, bool nowPlayer)
 
 void init(Player *player)
 {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::bernoulli_distribution dist(0.5); 
+    strategy = dist(gen);
     for (int i = 0; i < player->row_cnt; i++)
     {
         vector<char> temp;
